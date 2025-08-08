@@ -12,7 +12,7 @@ cp config.example.json /var/lib/sha/config.json
   SYSTEMD
 
 [Unit]
-Description=shelter high availability
+Description=sheltupdate server supervisor
 After=network.target
 
 [Service]
@@ -38,7 +38,7 @@ WantedBy=multi-user.target
 supervisor=supervise-daemon
 
 name="sha"
-description="shelter high availability"
+description="sheltupdate server supervisor"
 
 command=/usr/bin/node
 command_args="/opt/sha/index.mjs"

@@ -82,7 +82,7 @@ function spawnWorker(env) {
 		},
 	};
 
-	const worker = new Worker("./worker.js", {
+	const worker = new Worker(new URL("./worker.js", import.meta.url), {
 		workerData,
 		stdout: true,
 		stderr: true,

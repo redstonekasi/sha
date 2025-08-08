@@ -199,6 +199,7 @@ function supervisorListen() {
 			const event = req.headers["x-github-event"];
 			if (event !== "push") return res.end();
 			const json = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+			if (json.ref !== "refs/heads/main") return res.end();
 
 			console.log("supervisor: head moved to", json.head_commit.id);
 

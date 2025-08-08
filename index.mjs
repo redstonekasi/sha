@@ -149,7 +149,6 @@ const stopWorker = (worker, env) =>
 
 async function rolloverRestart(env) {
 	const s = state[env];
-	await updateRepository(env);
 	s.previous = s.current;
 	s.current = spawnWorker(env);
 	await s.current.ready;

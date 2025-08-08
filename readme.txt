@@ -9,6 +9,11 @@ cp index.mjs worker.js /opt/sha/
 useradd -m -d /var/lib/sha -r -s /sbin/nologin sha
 cp config.example.json /var/lib/sha/config.json
 
+  CADDY
+
+reverse_proxy /_internal/* localhost:9080
+reverse_proxy localhost:9081
+
   SYSTEMD
 
 [Unit]

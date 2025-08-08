@@ -1,0 +1,30 @@
+{
+	"repository": "https://github.com/uwu/sheltupdate",
+	"port": "9080",
+	"key": "meow",
+	"environments": {
+		"release": {
+			"port": 9081,
+			"host": "https://inject.shelter.uwu.network"
+		},
+		"staging": {
+			"port": 9082,
+			"host": "https://staging.shelter.uwu.network"
+		}
+	},
+	"common": {
+		"stats": true,
+		"setupIntervalHours": 3,
+		"proxy": {
+			"cache": {
+				"lastUsedRemoveHours": 1,
+				"maxMinutesToUseCached": 30
+			},
+			"useragent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) discord/0.0.76 Chrome/128.0.6613.186 Electron/32.2.2 Safari/537.36"
+		},
+		"apiBases": {
+			"v1": "https://discord.com/api",
+			"v2": "https://discord.com/api/updates"
+		}
+	}
+}

@@ -97,9 +97,6 @@ function spawnWorker(env) {
 	worker.stderr.pipe(new PrefixTransform(`log/${env}: `)).pipe(process.stderr);
 
 	worker.on("message", (msg) => {
-		console.log(`worker/${env}:`, msg);
-		if (typeof msg === "string") return;
-
 		if (msg.action === "markTemp") {
 			worker.on("exit", () => {
 				fs.rm(msg.dir, { force: true, recursive: true });
@@ -107,6 +104,12 @@ function spawnWorker(env) {
 		} else if (msg.action === "ready") {
 			markReady();
 			ready = true;
+			console.log(`worker/${env}: worker is ready`);
+		} else if (msg.action === "reportStat") {
+			for (const target of ENVS) {
+				if (env === target) continue;
+				state[target].current.postMessage(msg);
+			}
 		}
 	});
 

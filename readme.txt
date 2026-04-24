@@ -17,12 +17,14 @@ reverse_proxy localhost:9081
   SYSTEMD
 
 [Unit]
-Description=sheltupdate server supervisor
+Description=sheltupdate server supervisor (%i)
 After=network.target
 
 [Service]
+Type=exec
 User=sha
-ExecStart=/usr/bin/node /opt/sha/index.mjs
+ExecStart=/usr/bin/node /opt/sha/index.mjs %i
+ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 
 ProtectSystem=strict
@@ -45,6 +47,8 @@ supervisor=supervise-daemon
 name="sha"
 description="sheltupdate server supervisor"
 
+NODE="${SVCNAME#*.}"
+
 command=/usr/bin/node
 command_args="/opt/sha/index.mjs"
 command_user=sha:sha
@@ -53,11 +57,23 @@ directory=/var/lib/sha
 output_log=/var/log/sha.log
 error_log=/var/log/sha.log
 
+checkconfig() {
+	if [ "$NODE" = "$SVCNAME" ]; then
+		eerror "You must create a symbolic link to this init script with the node name:"
+		eerror "  ln -s /etc/init.d/sha /etc/init.d/sha.release"
+		eerror "And then instead call:"
+		eerror "  rc-service sha.release start"
+		return 1
+	fi
+	return 0
+}
+
 depend() {
 	need net localmount
 	after firewall
 }
 
 start_pre() {
+	checkconfig || return 1
 	checkpath -f -o $command_user "$output_log"
 }

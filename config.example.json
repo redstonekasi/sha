@@ -2,12 +2,13 @@
 	"repository": "https://github.com/uwu/sheltupdate",
 	"port": "9080",
 	"key": "meow",
-	"environments": {
+	"nodes": {
 		"release": {
 			"port": 9081,
 			"host": "https://inject.shelter.uwu.network"
 		},
 		"staging": {
+			"branch": "main",
 			"port": 9082,
 			"host": "https://staging.shelter.uwu.network"
 		}

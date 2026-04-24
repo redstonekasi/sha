@@ -1,5 +1,4 @@
-import { _load, createRequire, registerHooks } from "node:module";
-import path from "node:path";
+import { _load, createRequire } from "node:module";
 import { parentPort, workerData } from "node:worker_threads";
 const req = createRequire(import.meta.url);
 
@@ -46,28 +45,7 @@ parentPort.on("message", (msg) => {
 			process.exit(0);
 		});
 		server.close();
-	} else if (msg.action === "reportStat") {
-		reporting[msg.fn].apply({ _sync: true }, msg.args, true);
 	}
 });
-
-registerHooks({
-	load(url, context, nextLoad) {
-		const res = nextLoad(url, context);
-		if (url.endsWith("reporting.js")) {
-			res.source = res.source.toString("utf8")
-				.replace(/^/, `import { parentPort } from "node:worker_threads";\n`)
-				.replace(
-					/(?<=function (.+)\((.*?)\) {)/g,
-					(_, name, args) =>
-						`\n\tif(!this?._sync) parentPort.postMessage({ action: "reportStat", fn: "${name}", args: [${args}] });`,
-				);
-		}
-		return res;
-	},
-});
-
-const reportingPath = path.resolve(workerData.mod, "..", "dashboard", "reporting.js");
-const reporting = req(reportingPath);
 
 _load(workerData.mod, null, true);

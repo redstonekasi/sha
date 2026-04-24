@@ -5,7 +5,6 @@ import { Transform } from "node:stream";
 import util from "node:util";
 import { Worker } from "node:worker_threads";
 
-import config from "./config.json" with { type: "json" };
 import { defu } from "./defu.mjs";
 
 const node = process.argv[2];
@@ -14,6 +13,7 @@ if (!node) {
 	process.exit(1);
 }
 
+const config = await fs.readFile("config.json", "utf8").then(JSON.parse);
 const nodeConfig = defu(config[node], config["_"]);
 
 const execFile = util.promisify(child.execFile);

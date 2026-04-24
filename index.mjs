@@ -1,7 +1,5 @@
 import child from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs/promises";
-import http from "node:http";
 import path from "node:path";
 import { Transform } from "node:stream";
 import util from "node:util";
@@ -16,13 +14,12 @@ if (!node) {
 	process.exit(1);
 }
 
-const nodeConfig = defu(config.nodes[node], config.common);
-const ghKey = crypto.createSecretKey(config.key);
+const nodeConfig = defu(config[node], config["_"]);
 
 const execFile = util.promisify(child.execFile);
 
 // TODO: look into worktrees if they don't cause any issues
-async function updateRepository() {
+async function updateRepository(force) {
 	try {
 		await execFile("git", ["clone", config.repository, node]);
 		console.log(`git: repository cloned`);
@@ -30,6 +27,9 @@ async function updateRepository() {
 		await execFile("git", ["-C", node, "fetch"]);
 		console.log(`git: repository fetched`);
 	}
+
+	const previous = await execFile("git", ["-C", node, "rev-parse", "HEAD"])
+		.then((r) => r.stdout.trim());
 
 	let rev;
 	if (!nodeConfig.branch) {
@@ -39,11 +39,16 @@ async function updateRepository() {
 		rev = await execFile("git", ["-C", node, "rev-parse", nodeConfig.branch])
 			.then((r) => r.stdout.trim());
 	}
-	await execFile("git", ["-C", node, "checkout", rev]);
-	console.log(`git: checked out ${rev}`);
 
-	await execFile("pnpm", ["install", "--frozen"], { cwd: node });
-	console.log(`git: node modules updated`);
+	if (force || previous !== rev) {
+		await execFile("git", ["-C", node, "checkout", rev]);
+		console.log(`git: checked out ${rev}`);
+
+		await execFile("pnpm", ["install", "--frozen"], { cwd: node });
+		console.log(`git: node modules updated`);
+	}
+
+	return previous !== rev;
 }
 
 class PrefixTransform extends Transform {
@@ -92,13 +97,19 @@ function spawnWorker() {
 
 	let directories = new Set();
 
-	worker.on("message", (msg) => {
+	worker.on("message", async (msg) => {
 		if (msg.action === "markTemp") {
 			directories.add(msg.dir);
 		} else if (msg.action === "ready") {
 			ready.resolve(worker);
 			resolved = true;
 			console.log(`worker: worker is ready`);
+		} else if (msg.action === "update") {
+			console.log("webhook: head moved to", msg.commit);
+			const updated = await updateRepository();
+			if (updated) {
+				await rolloverRestart();
+			}
 		}
 	});
 
@@ -144,72 +155,8 @@ async function rolloverRestart() {
 	previousWorker = null;
 }
 
-// truly the nodejs code of all time
-let superServer;
-function supervisorListen() {
-	superServer = http.createServer(async (req, res) => {
-		if (req.url === "/_internal/webhook") {
-			let sig;
-			try {
-				const hexSig = req.headers["x-hub-signature-256"].split("=")[1];
-				if (!hexSig) {
-					res.writeHead(400);
-					res.end();
-					return;
-				}
-				sig = Buffer.from(hexSig, "hex");
-			} catch {
-				res.writeHead(400);
-				res.end();
-				return;
-			}
-
-			let chunks = [];
-			const hmac = crypto.createHmac("sha256", ghKey);
-			try {
-				for await (const chunk of req) {
-					hmac.update(chunk);
-					chunks.push(chunk);
-				}
-			} catch {
-				res.writeHead(400);
-				res.end();
-				return;
-			}
-
-			if (!crypto.timingSafeEqual(sig, hmac.digest())) {
-				res.writeHead(400);
-				res.end();
-				return;
-			}
-
-			const event = req.headers["x-github-event"];
-			if (event !== "push") return res.end();
-			const json = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-
-			if (json.ref !== `refs/heads/${nodeConfig.branch || "main"}`) return res.end();
-
-			console.log("supervisor: head moved to", json.head_commit.id);
-
-			await updateRepository();
-			await rolloverRestart();
-
-			res.end();
-		} else {
-			res.writeHead(404);
-			res.end();
-		}
-	});
-	superServer.listen(config.port, () => {
-		console.log("supervisor: listening on", config.port);
-	});
-}
-
 function registerSignalHandlers() {
 	async function terminate(signal) {
-		superServer.close();
-		superServer.closeAllConnections();
-
 		await stopWorker(previousWorker);
 		await stopWorker(currentWorker);
 
@@ -224,11 +171,8 @@ function registerSignalHandlers() {
 
 async function main() {
 	registerSignalHandlers();
-	await updateRepository();
-
+	await updateRepository(true);
 	currentWorker = await spawnWorker();
-
-	supervisorListen();
 }
 
 await main();

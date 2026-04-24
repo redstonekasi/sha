@@ -1,19 +1,18 @@
 {
-	"repository": "https://github.com/uwu/sheltupdate",
-	"port": "9080",
-	"key": "meow",
-	"nodes": {
-		"release": {
-			"port": 9081,
-			"host": "https://inject.shelter.uwu.network"
-		},
-		"staging": {
-			"branch": "main",
-			"port": 9082,
-			"host": "https://staging.shelter.uwu.network"
-		}
+	"release": {
+		"port": 9080,
+		"host": "https://inject.shelter.uwu.network"
 	},
-	"common": {
+	"staging": {
+		"branch": "main",
+		"port": 9081,
+		"host": "https://staging.shelter.uwu.network"
+	},
+	"_": {
+		"supervisor": {
+			"repository": "https://github.com/uwu/sheltupdate",
+			"key": "meow"
+		},
 		"stats": true,
 		"setupIntervalHours": 3,
 		"proxy": {

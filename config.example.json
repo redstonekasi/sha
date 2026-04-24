@@ -4,7 +4,9 @@
 		"host": "https://inject.shelter.uwu.network"
 	},
 	"staging": {
-		"branch": "main",
+		"supervisor": {
+			"branch": "main"
+		},
 		"port": 9081,
 		"host": "https://staging.shelter.uwu.network"
 	},

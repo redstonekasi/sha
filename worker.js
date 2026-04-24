@@ -47,7 +47,7 @@ async function listener(req, res) {
 		if (event !== "push") return res.end();
 		const json = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 
-		if (json.ref !== `refs/heads/${workerData.config.branch || "main"}`) return res.end();
+		if (json.ref !== `refs/heads/${workerData.config.supervisor.branch || "main"}`) return res.end();
 
 		parentPort.postMessage({ action: "update", commit: json.head_commit.id });
 		res.end();

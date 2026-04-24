@@ -21,7 +21,7 @@ const execFile = util.promisify(child.execFile);
 // TODO: look into worktrees if they don't cause any issues
 async function updateRepository(force) {
 	try {
-		await execFile("git", ["clone", config.repository, node]);
+		await execFile("git", ["clone", nodeConfig.supervisor.repository, node]);
 		console.log(`git: repository cloned`);
 	} catch {
 		await execFile("git", ["-C", node, "fetch"]);
@@ -32,11 +32,11 @@ async function updateRepository(force) {
 		.then((r) => r.stdout.trim());
 
 	let rev;
-	if (!nodeConfig.branch) {
+	if (!nodeConfig.supervisor.branch) {
 		rev = await execFile("git", ["-C", node, "rev-list", "-1", "main", "--", "CHANGELOG.md"])
 			.then((r) => r.stdout.trim());
 	} else {
-		rev = await execFile("git", ["-C", node, "rev-parse", nodeConfig.branch])
+		rev = await execFile("git", ["-C", node, "rev-parse", nodeConfig.supervisor.branch])
 			.then((r) => r.stdout.trim());
 	}
 

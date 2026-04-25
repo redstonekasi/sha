@@ -13,12 +13,23 @@ if (!node) {
 	process.exit(1);
 }
 
-const config = await fs.readFile("config.json", "utf8").then(JSON.parse);
-const nodeConfig = defu(config[node], config["_"]);
+let nodeConfig;
+async function updateConfig() {
+	try {
+		const json = await fs.readFile("config.json", "utf8").then(JSON.parse);
+		nodeConfig = defu(json[node], json["_"]);
+		console.log("supervisor: loaded config for", node);
+	} catch (err) {
+		console.log("supervisor: failed to load config:", err.message);
+	}
+	if (!nodeConfig) process.exit(1);
+}
+await updateConfig();
 
 const execFile = util.promisify(child.execFile);
 
 // TODO: look into worktrees if they don't cause any issues
+/** @param {boolean=} force */
 async function updateRepository(force) {
 	try {
 		await execFile("git", ["clone", nodeConfig.supervisor.repository, node]);
@@ -142,9 +153,15 @@ function spawnWorker() {
 	return ready.promise;
 }
 
+/** @type {Worker | null} */
 let previousWorker;
+/** @type {Worker} */
 let currentWorker;
 
+/**
+ * @param {Worker | null} worker
+ * @returns {Promise<void>}
+ */
 const stopWorker = (worker) =>
 	new Promise((res) => {
 		if (!worker) return res();
@@ -166,7 +183,10 @@ async function rolloverRestart() {
 }
 
 function registerSignalHandlers() {
+	/** @param {number} signal */
 	async function terminate(signal) {
+		await sdNotify("--stopping");
+
 		await stopWorker(previousWorker);
 		await stopWorker(currentWorker);
 
@@ -178,6 +198,8 @@ function registerSignalHandlers() {
 
 	process.on("SIGHUP", async () => {
 		await sdNotify("--reloading");
+		await updateConfig();
+		await updateRepository();
 		await rolloverRestart();
 		await sdNotify("--ready");
 	});

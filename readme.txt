@@ -21,11 +21,12 @@ Description=sheltupdate server supervisor (%i)
 After=network.target
 
 [Service]
-Type=exec
+Type=notify-reload
 User=sha
 ExecStart=/usr/bin/node /opt/sha/index.mjs %i
-ExecReload=kill -HUP $MAINPID
+NotifyAccess=all
 Restart=on-failure
+RestartSec=5s
 
 ProtectSystem=strict
 ProtectHome=yes

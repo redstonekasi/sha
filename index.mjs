@@ -51,6 +51,16 @@ async function updateRepository(force) {
 	return previous !== rev;
 }
 
+const hasSystemdSocket = !!process.env["NOTIFY_SOCKET"];
+async function sdNotify(...args) {
+	if (!hasSystemdSocket) return;
+	try {
+		await execFile("systemd-notify", args);
+	} catch {
+		console.log("supervisor: failed to notify systemd");
+	}
+}
+
 class PrefixTransform extends Transform {
 	constructor(prefix, options) {
 		super(options);
@@ -105,7 +115,7 @@ function spawnWorker() {
 			resolved = true;
 			console.log(`worker: worker is ready`);
 		} else if (msg.action === "update") {
-			console.log("webhook: head moved to", msg.commit);
+			console.log("supervisor: head moved to", msg.commit);
 			const updated = await updateRepository();
 			if (updated) {
 				await rolloverRestart();
@@ -166,13 +176,18 @@ function registerSignalHandlers() {
 	process.once("SIGINT", terminate);
 	process.once("SIGTERM", terminate);
 
-	process.on("SIGHUP", rolloverRestart);
+	process.on("SIGHUP", async () => {
+		await sdNotify("--reloading");
+		await rolloverRestart();
+		await sdNotify("--ready");
+	});
 }
 
 async function main() {
 	registerSignalHandlers();
 	await updateRepository(true);
 	currentWorker = await spawnWorker();
+	await sdNotify("--ready");
 }
 
 await main();

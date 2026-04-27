@@ -105,6 +105,10 @@ function spawnWorker() {
 
 	const worker = new Worker(new URL("./worker.js", import.meta.url), {
 		workerData,
+		env: {
+			...process.env,
+			SHELTUPDATE_RELEASE: !nodeConfig.supervisor.branch,
+		},
 		stdout: true,
 		stderr: true,
 	});

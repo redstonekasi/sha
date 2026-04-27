@@ -44,7 +44,7 @@ async function updateRepository(force) {
 
 	let rev;
 	if (!nodeConfig.supervisor.branch) {
-		rev = await execFile("git", ["-C", node, "rev-list", "-1", "main", "--", "CHANGELOG.md"])
+		rev = await execFile("git", ["-C", node, "rev-list", "-1", "origin/main", "--", "CHANGELOG.md"])
 			.then((r) => r.stdout.trim());
 	} else {
 		rev = await execFile("git", ["-C", node, "rev-parse", "origin/" + nodeConfig.supervisor.branch])

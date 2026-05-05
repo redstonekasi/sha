@@ -107,7 +107,7 @@ function spawnWorker() {
 		workerData,
 		env: {
 			...process.env,
-			SHELTUPDATE_RELEASE: !nodeConfig.supervisor.branch,
+			SHELTUPDATE_RELEASE: !nodeConfig.supervisor.branch || nodeConfig.supervisor.branch === "release",
 		},
 		stdout: true,
 		stderr: true,
